@@ -5,12 +5,15 @@
 #include <signal.h>
 #include <stdlib.h>
 
-static int gautas_signalas = 0;
+static int gautas_signalas1 = 0;
+static int gautas_signalas2 = 0;
 
-void funkcija () {
-	system("who");
-	signal(getppid(), SIGUSR2);
-	gautas_signalas = 1;
+void funkcija1() {
+	gautas_signalas1 = 1;
+}
+
+void funkcija2(){
+	gautas_signalas2 = 1;
 }
 
 
@@ -18,7 +21,8 @@ void funkcija () {
 int main( void ) {
 	pid_t  pid;
 
-	signal(SIGUSR1, funkcija);
+	signal(SIGUSR1, funkcija1);
+	signal(SIGUSR2, funkcija2);
 
 	pid = fork();
 	if ( pid == -1 ) {
@@ -28,22 +32,20 @@ int main( void ) {
 	if ( pid != 0 ) {
 		printf("TEVAS: mano pid = %ld\n", getpid());
 		printf("TEVAS: mano vaiko pid = %ld\n", pid);
-		system("ps");
 		sleep( 3 );
 		kill( pid, SIGUSR1 );
 		printf( "TEVAS: signala pasiunciau.\n" );
-		wait( NULL );
+		while(gautas_signalas2 == 0);
+		kill(pid, SIGKILL);
+		sleep(5);
 		printf( "TEVAS: baigiu darba.\n" );
 		return 0;
 	} else {
-		sleep (1);
 		printf( "VAIKAS: mano PID = %ld\n", getpid() );
-		while(1)
-			if ( gautas_signalas == 1 ) {
-				printf( "VAIKAS: signala gavau!\n" );
-				sleep( 1 );
-				printf( "VAIKAS: baigiu darba.\n" );
-				return 0;
-			}
+		while(gautas_signalas1 == 0);
+		system("who");
+		kill(getppid(), SIGUSR2);
+		while(1);
+		return 0;
 	}
 }
